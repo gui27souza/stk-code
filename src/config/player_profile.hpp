@@ -139,6 +139,7 @@ public:
     void saveSession(int user_id, const std::string &token);
     void clearSession(bool save=true);
     void setIconFromKart(const std::string& kart_ident);
+    void setIconFromPath(const std::string& icon_path);
     void addIcon();
 
     /** Abstract virtual classes, to be implemented by the OnlinePlayer. */

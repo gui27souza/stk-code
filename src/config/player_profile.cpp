@@ -183,6 +183,15 @@ void PlayerProfile::setIconFromKart(const std::string& kart_ident)
 }   // setIconFromKart
 
 //------------------------------------------------------------------------------
+/** Sets the profile icon to use the specified icon path.
+ *  \param icon_path Path where the wanted icon is located in the user device
+ */
+void PlayerProfile::setIconFromPath(const std::string& icon_path)
+{
+    // TODO - PlayerProfile::setIconFromPath
+}   // setIconFromPath
+
+//------------------------------------------------------------------------------
 /** Creates an icon for a player if none exists so far. If a specific kart was
  *  chosen (via m_icon_kart_ident), that kart's icon is used; otherwise, it takes
  *  the unique player id modulo the number of karts to pick an icon from the karts.

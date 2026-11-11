@@ -23,6 +23,7 @@
 #include "guiengine/widgets/ribbon_widget.hpp"
 #include "karts/kart_properties.hpp"
 #include "karts/kart_properties_manager.hpp"
+#include "states_screens/dialogs/icon_path_input_dialog.hpp"
 #include "states_screens/state_manager.hpp"
 
 using namespace GUIEngine;
@@ -102,7 +103,11 @@ GUIEngine::EventPropagation
         const std::string& selection = m_buttons_widget->
                                     getSelectionIDString(PLAYER_ID_GAME_MASTER);
 
-        if (selection == "apply")
+        if (selection == "upload")
+        {
+            new IconPathInputDialog(m_player_profile, m_parent_screen);
+        }
+        else if (selection == "apply")
         {
             if (!m_selected_kart.empty())
             {
