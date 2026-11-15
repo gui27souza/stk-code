@@ -27,6 +27,7 @@ class PlayerProfile;
 namespace GUIEngine
 {
     class RibbonWidget;
+    class IconButtonWidget;
 }
 
 
@@ -55,9 +56,7 @@ private:
     
     GUIEngine::TextBoxWidget *m_icon_path_output_widget;
 
-    GUIEngine::Widget* m_icon_render;
-
-    bool m_is_valid_icon_path;
+    GUIEngine::IconButtonWidget* m_icon_render;
 
     std::string m_icon_path;
 
@@ -70,9 +69,9 @@ public:
 
     virtual void init() OVERRIDE;
 
-    bool validatePath();
+    void resetState();
 
-    void renderNewIcon();
+    std::string validatePath();
 
     GUIEngine::EventPropagation processEvent(const std::string& eventSource) OVERRIDE;
 };

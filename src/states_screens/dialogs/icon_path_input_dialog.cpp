@@ -17,9 +17,16 @@
 
 #include "states_screens/dialogs/icon_path_input_dialog.hpp"
 
+#include "graphics/irr_driver.hpp"
 #include "guiengine/widgets/ribbon_widget.hpp"
 #include "guiengine/widgets/text_box_widget.hpp"
+#include "guiengine/widgets/icon_button_widget.hpp"
+#include <IImage.h>
+#include <irrlicht.h>
+#include "io/file_manager.hpp"
 #include "states_screens/state_manager.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/translation.hpp"
 
 using namespace GUIEngine;
 
@@ -32,13 +39,13 @@ IconPathInputDialog::IconPathInputDialog(PlayerProfile* pp, BaseUserScreen* user
     m_player_profile = pp;
     m_parent_screen = user_screen;
 
-    m_is_valid_icon_path = false;
+    m_icon_path = "";
 
     m_buttons_widget = getWidget<RibbonWidget>("buttons");
     assert(m_buttons_widget);
 
     m_path_input_buttons_widget = getWidget<RibbonWidget>("path_input_buttons");
-    assert(m_buttons_widget);
+    assert(m_path_input_buttons_widget);
 
     m_icon_path_textbox_widget = getWidget<TextBoxWidget>("icon_path_textbox");
     assert(m_icon_path_textbox_widget);
@@ -58,6 +65,12 @@ void IconPathInputDialog::init()
     ModalDialog::init();
 }
 
+void IconPathInputDialog::resetState()
+{
+    m_icon_path = "";
+    m_apply_button->setActive(false);
+    m_icon_render->setActive(false);
+}
 
 // ----------------------------------------------------------------------------
 void IconPathInputDialog::beforeAddingWidgets()
@@ -78,32 +91,56 @@ void IconPathInputDialog::beforeAddingWidgets()
     RibbonWidget* icon_render_buttons = getWidget<RibbonWidget>("icon_render_buttons");
     assert(icon_render_buttons);
     int icon_render_index = icon_render_buttons->findItemNamed("icon_render");
-    m_icon_render = &icon_render_buttons->getChildren()[icon_render_index];
+    m_icon_render = (IconButtonWidget*) &icon_render_buttons->
+                                        getChildren()[icon_render_index];
     assert(m_icon_render);
     m_icon_render->setActive(false);
 
 }   // beforeAddingWidgets
 
 // ----------------------------------------------------------------------------
-bool IconPathInputDialog::validatePath()
+std::string IconPathInputDialog::validatePath()
 {
-    // TODO - IconPathInputDialog::validatePath
-    // If an error occur, report to the user
+    std::string path = StringUtils::wideToUtf8(
+        getWidget<TextBoxWidget>("icon_path_textbox")->getText().c_str()
+    );
 
-    stringw a = getWidget<TextBoxWidget>("icon_path_textbox")->getText();
+    if (path.empty()) {
+        m_icon_path_output_widget->setText(_("Please, provide an icon file path."));
+        return "";
+    }
 
-    // Validate path
+    if (!file_manager->fileExists(path)) {
+        m_icon_path_output_widget->setText(_("File does not exist."));
+        return "";
+    }
 
-    return true;
+    if (StringUtils::toLowerCase(StringUtils::getExtension(path)) != "png") {
+        m_icon_path_output_widget->setText(_("Invalid file type, 'png' expected."));
+        return "";
+    }
+
+    video::IVideoDriver* driver = irr_driver->getVideoDriver();
+    video::IImage* img = driver->createImageFromFile(path.c_str());
+    if (!img) {
+        m_icon_path_output_widget->setText(_("Unsupported or corrupted image."));
+        return "";
+    }
+    core::dimension2d<u32> dim = img->getDimension();
+    img->drop();
+
+    float ratio = 0;
+    if (dim.Width > 0 && dim.Height > 0) {
+        ratio = (float) dim.Width / (float) dim.Height;
+    }
+
+    if (ratio < 0.9 || ratio > 1.1) {
+        m_icon_path_output_widget->setText(_("Invalid image ratio, must be near 1:1."));
+        return "";
+    }
+
+    return path;
 }   // validatePath
-
-// ----------------------------------------------------------------------------
-void IconPathInputDialog::renderNewIcon()
-{
-    // TODO - IconPathInputDialog::renderNewIcon
-    // Render new incon in m_icon_render
-
-}   // renderNewIcon
 
 // ----------------------------------------------------------------------------
 GUIEngine::EventPropagation
@@ -116,14 +153,18 @@ GUIEngine::EventPropagation
                                     getSelectionIDString(PLAYER_ID_GAME_MASTER);
 
         if (selection == "validate") {
-            m_is_valid_icon_path = validatePath();
+            resetState();
+            m_icon_path_output_widget->setText("");
+            m_icon_path = validatePath();
 
-            if (m_is_valid_icon_path) {
-                renderNewIcon();
+            if (!m_icon_path.empty()) {
+                m_icon_render->setImage(m_icon_path, IconButtonWidget::ICON_PATH_TYPE_ABSOLUTE);
                 m_icon_render->setActive(true);
-                m_icon_path_output_widget->setText("Valid icon path!");
+                m_icon_path_output_widget->setText(_("Valid icon!"));
                 m_apply_button->setActive(true);
             }
+            else
+                resetState();
         }
     }
 
@@ -136,7 +177,7 @@ GUIEngine::EventPropagation
         if (selection == "apply")
         {
 
-            if (m_is_valid_icon_path && !m_icon_path.empty())
+            if (!m_icon_path.empty())
             {
                 m_player_profile->setIconFromPath(m_icon_path);
                 m_parent_screen->loadProfilesIcons();
